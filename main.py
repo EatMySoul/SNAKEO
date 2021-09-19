@@ -6,7 +6,7 @@ import time
 MAP_SIZE = 20
 GAME_SPEED = 100
 
-SNAKE_COLOR = ('#99d98c','#264653','#2a9d8f')
+SNAKE_COLOR = ['#99d98c','#264653','#2a9d8f']
 
 
 #WAS DESIGION OF USE A DICT IS RIGHT?
@@ -39,12 +39,13 @@ class Game():
 
         snake_color = SNAKE_COLOR
         flag = 0
-
+        ##TODO CHANGE SIZING
         for snake in self.players:
             for segment in snake.body:
                 self.canvas.create_rectangle(segment['Y'] * MAP_SIZE , segment['X'] * MAP_SIZE,segment['Y'] * MAP_SIZE + 20 , segment['X'] * MAP_SIZE + 20, fill=snake_color[flag])
                 flag = 2 if flag == 1 or 0 else 1
         self.canvas.create_rectangle(self.food_pos['Y']*MAP_SIZE, self.food_pos['X']*MAP_SIZE,self.food_pos['Y']*MAP_SIZE + 20, self.food_pos['X']*MAP_SIZE + 20,fill='#d00000')
+        SNAKE_COLOR[2],SNAKE_COLOR[1] = SNAKE_COLOR[1],SNAKE_COLOR[2]
 
 
     def gameloop(self):
