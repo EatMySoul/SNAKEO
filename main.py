@@ -6,27 +6,27 @@ import time
 MAP_SIZE = 20
 GAME_SPEED = 100
 
+SNAKE_COLOR = ('#99d98c','#264653','#2a9d8f')
+
+
+#WAS DESIGION OF USE A DICT IS RIGHT?
 
 class Game():
 
     def __init__(self):
 
         self.players = []
-        self.food_pos = []
+        self.food_pos = {}
+
         new_snake = Snake()
         self.players.append(new_snake)
-        self.map = [[0] *  MAP_SIZE for i in range(MAP_SIZE)]
 
         self.root = Tk()
         self.root.geometry('800x800')
 
         self.canvas = Canvas(self.root,height=800,width=800,bg='black')
         self.canvas.pack()
-####    dont like this V V V V
-        for snake in self.players:
-            for i in snake.body:
-                self.map[ i['X'] ][ i['Y'] ] = 1
- ####
+
         self.add_food()
         self.gameloop()
 
@@ -37,39 +37,22 @@ class Game():
 
         self.canvas.delete('all')
 
-        for x in range(MAP_SIZE):
-            for y in range(MAP_SIZE):
-                if self.map[x][y] == 1:
-                    self.canvas.create_rectangle(y*MAP_SIZE,x*MAP_SIZE,y*MAP_SIZE+20,x*MAP_SIZE+20,fill='green')
-                elif self.map[x][y] == 2:
-                    self.canvas.create_rectangle(y*MAP_SIZE,x*MAP_SIZE,y*MAP_SIZE+20,x*MAP_SIZE+20,fill='red')
-                elif self.map[x][y] == 3:
-                    pass
+        snake_color = SNAKE_COLOR
+        flag = 0
 
-                ######## SOME DEBUG TO SEE MATRIX MAP
- #       for i in range(MAP_SIZE):
- #          for j in range(MAP_SIZE):
- #              print(self.map[i][j],end = ' ')
- #          print()
- #       print('\n')
+        for snake in self.players:
+            for segment in snake.body:
+                self.canvas.create_rectangle(segment['Y'] * MAP_SIZE , segment['X'] * MAP_SIZE,segment['Y'] * MAP_SIZE + 20 , segment['X'] * MAP_SIZE + 20, fill=snake_color[flag])
+                flag = 2 if flag == 1 or 0 else 1
+        self.canvas.create_rectangle(self.food_pos['Y']*MAP_SIZE, self.food_pos['X']*MAP_SIZE,self.food_pos['Y']*MAP_SIZE + 20, self.food_pos['X']*MAP_SIZE + 20,fill='#d00000')
 
 
     def gameloop(self):
+
         for snake in self.players:
             snake.direction = snake.next_direction
             snake.move()
             self.check_snakes_collision()
-            #### CLEANING MATRIX MAP
-            for i in range(MAP_SIZE):
-                for j in range(MAP_SIZE):
-                    if self.map[i][j] == 1:
-                        self.map[i][j] = 0
-            ####
-#################################################### LOOOK AT ME AM HERE!
-            for i in snake.body:
-                self.map[i['X'] ][ i['Y'] ] = 1
-            #####
-
 
         self.show_interface_map()
         self.root.after(GAME_SPEED,self.gameloop)
@@ -79,14 +62,23 @@ class Game():
         x = randint(0, MAP_SIZE - 1)
         y = randint(0, MAP_SIZE - 1)
 
-        while self.map[x][y] == 1:
+        snakes_coords = self.get_snake_coord()
+
+        while [x,y] in snakes_coords:
             x = randint(0, MAP_SIZE - 1)
             y = randint(0, MAP_SIZE - 1)
 
         self.food_pos = {'X': x, 'Y': y}
-        self.map[x][y] = 2
 
+    ##TODO GET SPECIFIC OF PLAYER SNAKE COORDS LIKE get_snake_coord(player1,player3)
+    def get_snake_coord(self,):
+        cordinates = []
+        for snake in self.players:
+            for segment in snake.body:
+                cordinates.append(list(segment.values()))
+        return cordinates
 
+    ##TODO COLLISION BETWEEN PLAYERS
     def check_snakes_collision(self):
         for snake in self.players:
             if list(snake.body[0].values()) == list(self.food_pos.values()):
@@ -113,15 +105,8 @@ class Snake():
 
     def move(self):
         # перемещение координат тела змейки
-   #     for i in range(len(self.body), 1, -1):
-   #         j = i - 1
-   #         self.body[j]['X'] = self.body[j - 1]['X']
-   #         self.body[j]['Y'] = self.body[j - 1]['Y']
-   #     #
         print(self.body)
-        for segment in range(len(self.body) - 1,-1,-1):
-            print(self.body[segment])
-##### WHATS WRONG?????????
+        for segment in range(len(self.body) - 1,0,-1):
             self.body[segment]['X'] = self.body[segment - 1]['X']
             self.body[segment]['Y'] = self.body[segment - 1]['Y']
 
@@ -146,7 +131,7 @@ class Snake():
                 self.body[0]['X'] = 0
             else:
                 self.body[0]['X'] += 1
-         #### SNAKE CHECK HIS OWN COLLISION?
+         #### SNAKE CHECK HIS OWN COLLISION? ITS BAD
         for i in range(1, len(self.body)):
             if self.body[0] == self.body[i]:
                 self.death()
@@ -170,8 +155,7 @@ class Snake():
         self.score += 10
         print(f'Score is {self.score}')
 
-        ## FIX start position of new segment
-        new_segment  = self.body[-1]
+        new_segment  = {'X': self.body[-1]['X'],'Y':self.body[-1]['Y']}
         self.body.append(new_segment)
 
 
@@ -183,40 +167,10 @@ class Snake():
         time.sleep(3)
 
 
+
 def main():
     game = Game()
 
 
 if __name__ == "__main__":
     main()
-
-"""
-MATRIX MAP LOOKS LIKE
-
-1 - snake body
-
-2 - apple
-
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-
-
-"""
