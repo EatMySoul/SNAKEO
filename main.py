@@ -1,13 +1,14 @@
 from pynput import keyboard
 from random import randint
 import json
-from threading import Thread
 from tkinter import *
 import socket
 import time
 
 MAP_SIZE = 20
 GAME_SPEED = 100
+
+MAX_PLAYERS = 2
 
 SNAKE_COLOR = ['#99d98c', '#264653', '#2a9d8f']
 
@@ -18,24 +19,22 @@ class Game:
 
     def __init__(self):
 
-        self.root = Tk()
                                         #network
-        self.socket = socket.socket()
-        self.socket.bind(('',9996))     #Using 9996 port
-        self.socket.listen(1)         #Listen two players, two for test...
+        self.server = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        self.server.bind(('127.0.0.1',9996))     #Using 9996 port
 
         self.players = []
+        #### PLAYERS CONNECT
+        while len(self.players) < MAX_PLAYERS:
+            print('waiting players:',len(self.players),'/',MAX_PLAYERS)
+            name,addr = self.server.recvfrom(1024)
+            self.players.append(Snake(name,addr,len(self.players) + 1))
+            print(name.decode('utf-8'),'connected')
 
-        while len(self.players) < 1:
-            print('waiting players:',len(self.players),'/ 1')
-            conn, addr = self.socket.accept()
-            print('player',conn,addr,'connected')
-            self.players.append(Snake(conn,addr))
+        for snake in self.players:
+            self.server.sendto(bytes('runing', encoding = "utf-8"),snake.addr)
 
 
-        th_recv = Thread(target = self.reciv_input())
-        th_recv.start()
-                                        #
 
         self.food_pos = {}
 
@@ -44,15 +43,15 @@ class Game:
 
         data = self.get_network_data()
         self.send_data(data)
-        time.sleep(1)
+
         print('am send some important data')
         self.gameloop()
-
-        self.root.mainloop()
 
 
 
     def gameloop(self):
+
+        self.recv_input()
 
         for snake in self.players:
             snake.direction = snake.next_direction
@@ -62,7 +61,8 @@ class Game:
         data = self.get_network_data()
         self.send_data(data)
 
-        self.root.after(GAME_SPEED, self.gameloop)
+        time.sleep(GAME_SPEED/1000)
+        self.gameloop()
 
 
     def add_food(self):
@@ -86,10 +86,7 @@ class Game:
                 cordinates.append(list(segment.values()))
         return cordinates
 
-    def get_network_data(self):
-        data = {'food_pos': self.food_pos,
-                'player0': self.players[0].body}
-        return data
+
 
     ##TODO COLLISION BETWEEN PLAYERS
     def check_snakes_collision(self):
@@ -98,45 +95,53 @@ class Game:
                 snake.add_segment()
                 self.add_food()
 
+     ############################NETWORK################################           
+
+    def get_network_data(self):
+        data = {'food_pos': self.food_pos,
+                'player0': self.players[0].body,
+                'player1':self.players[1].body}
+        return data
+
 
     def send_data(self,data):
         print('...sending data')
         for snake in self.players:
-            snake.conn.send(bytes(json.dumps(data), encoding = "utf-8"))
+            self.server.sendto(bytes(json.dumps(data), encoding = "utf-8"),snake.addr)
 
 
-    def reciv_input(self):
-        while True:
-            key,addr = self.socket.recvfrom(1024)
-            key = key.decode("utf-8")
-            for snake in self.players:
-                if snake.addr == addr:
-                    if key == 'Key.left' and snake.direction != 'right':
-                        snake.next_direction = 'left'
-                    elif key == 'Key.right' and snake.direction != 'left':
-                        snake.next_direction = 'right'
-                    elif key == 'Key.up' and snake.direction != 'down':
-                        snake.next_direction = 'up'
-                    elif key == 'Key.down' and snake.direction != 'up':
-                        snake.next_direction = 'down'
-                    elif key == 'Key.esc':
-                        snake.living = False
+    def recv_input(self):
+
+        direction,addr = self.server.recvfrom(1024)
+        direction = direction.decode("utf-8")
+        for snake in self.players:
+            if snake.addr == addr:
+                if direction == 'left' and snake.direction != 'right':
+                    snake.next_direction = 'left'
+                elif direction == 'right' and snake.direction != 'left':
+                    snake.next_direction = 'right'
+                elif direction == 'up' and snake.direction != 'down':
+                    snake.next_direction = 'up'
+                elif direction == 'down' and snake.direction != 'up':
+                    snake.next_direction = 'down'
+                elif direction == 'esc':
+                    snake.living = False
 
 
 
 class Snake:
 
-    def __init__(self,conn,addr):
+    def __init__(self,name,addr,player_count):
 
-        self.conn = conn
+        self.name = name
         self.addr = addr
 
         self.living = True
         self.score = 0
-
-        self.body = [{'X': 3, 'Y': 3},
-                     {"X": 3, "Y": 2},
-                     {"X": 3, "Y": 1}, ]
+## TODO NEED TO SET UNIQ COORDS FOR EACH SNAKE
+        self.body = [{'X': 3*player_count, 'Y': 3},
+                     {"X": 3*player_count, "Y": 2},
+                     {"X": 3*player_count, "Y": 1}, ]
 
         self.direction = 'up'
         self.next_direction = 'up'
@@ -199,3 +204,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -10,16 +10,25 @@ MAP_SIZE = 20
 GAME_SPEED = 100
 SNAKE_COLOR =  ['#99d98c', '#264653', '#2a9d8f']
 
-SERVER_IP = '127.0.0.1'
-SERVER_PORT = 9996
+SERVER_IP_PORT = ('127.0.0.1',9996)
 
 
 class Game():
 
     def __init__(self):
 
-        self.socket = socket.socket()
-        self.connect_to_server()
+
+        self.client = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+
+        name = input('Your name :')
+
+        self.client.sendto(bytes(name, encoding='utf-8'),SERVER_IP_PORT)
+
+
+        game_status = 'stop'
+        while game_status == 'stop':
+            game_status = self.client.recv(1024)
+            game_status = game_status.decode('utf-8')
 
         self.root = Tk()
         self.root.geometry('800x800')
@@ -31,6 +40,7 @@ class Game():
         listener = keyboard.Listener(on_press=self.on_press)
         listener.start()
 
+        self.direction ='None'
         self.players = []
         self.food_pos = {}
 
@@ -40,21 +50,29 @@ class Game():
 
 
     def gameloop(self):
+        self.send_data()
         self.recv_data()
-        self.show_interface()
-        self.gameloop()
-        self.root.after(GAME_SPEED,self.gameloop)
 
-    def connect_to_server(self):
-        self.socket.connect((SERVER_IP, SERVER_PORT))
+
+        self.show_interface()
+        self.root.after(GAME_SPEED,self.gameloop)
+        
+
+    def send_data(self):
+        self.client.sendto(bytes(self.direction,encoding = 'utf-8'),SERVER_IP_PORT)
+        self.direction = 'None'
+
+        
+
 
     def recv_data(self):
 
-        data = self.socket.recv(1024)
-        data = data.decode("utf-8")
+        data,serv_addr = self.client.recvfrom(1024)
         print(data)
+
+        data = data.decode("utf-8")
         data = json.loads(data)
-        print(data is dict)
+
         self.update_data(data)
 
 
@@ -77,12 +95,21 @@ class Game():
             for segment in snake:
                 self.canvas.create_rectangle(segment['Y'] * MAP_SIZE, segment['X'] * MAP_SIZE, segment['Y'] * MAP_SIZE + 20, segment['X'] * MAP_SIZE + 20, fill=snake_color[flag])
                 flag = 2 if flag == 1 or 0 else 1
+            flag = 0
         self.canvas.create_rectangle(self.food_pos['Y']*MAP_SIZE, self.food_pos['X']*MAP_SIZE, self.food_pos['Y']*MAP_SIZE + 20, self.food_pos['X']*MAP_SIZE + 20, fill='#d00000')
         SNAKE_COLOR[2], SNAKE_COLOR[1] = SNAKE_COLOR[1], SNAKE_COLOR[2]
         self.canvas.update()
 
     def on_press(self, key):
-        self.socket.send(bytes(str(key), encoding = "utf-8"))
+        if key == keyboard.Key.left :
+            self.direction = 'left'
+        elif key == keyboard.Key.right :
+            self.direction = 'right'
+        elif key == keyboard.Key.up:
+            self.direction = 'up'
+        elif key == keyboard.Key.down :
+            self.direction = 'down'
+
 
 
 
