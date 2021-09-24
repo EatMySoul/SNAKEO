@@ -8,7 +8,7 @@ import time
 MAP_SIZE = 20
 GAME_SPEED = 100
 
-MAX_PLAYERS = 2
+MAX_PLAYERS = 1
 
 SNAKE_COLOR = ['#99d98c', '#264653', '#2a9d8f']
 
@@ -98,9 +98,9 @@ class Game:
      ############################NETWORK################################           
 
     def get_network_data(self):
-        data = {'food_pos': self.food_pos,
-                'player0': self.players[0].body,
-                'player1':self.players[1].body}
+        data = {'food_pos': self.food_pos}
+        for i in range(len(self.players)):
+            data.update({f'player{i}':self.players[i].body})
         return data
 
 
