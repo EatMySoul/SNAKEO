@@ -5,7 +5,7 @@ from tkinter import *
 import socket
 import time
 
-MAP_SIZE = 1000
+MAP_SIZE = 800
 SEGMENT_SIZE = 20
 GAME_SPEED = 100
 
@@ -21,19 +21,24 @@ class Game:
     def __init__(self):
 
                                         #network
-        self.server = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-        self.server.bind(('127.0.0.1',9996))     #Using 9996 port
+        self.server = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM) #family=socket.AF_INET, type=socket.SOCK_STREAM
+        self.server.bind(('',9996))     #Using 9996 port
+        self.server.listen(MAX_PLAYERS)
 
         self.players = []
-        #### PLAYERS CONNECT
+
+
         while len(self.players) < MAX_PLAYERS:
             print('waiting players:',len(self.players),'/',MAX_PLAYERS)
-            name,addr = self.server.recvfrom(1024)
-            self.players.append(Snake(name,addr,len(self.players) + 1))
-            print(name.decode('utf-8'),'connected')
+            conn, addr = self.server.accept()
+            name = conn.recv(1024).decode('utf-8')
+            print('player',name,'connected')
+            self.players.append(Snake(conn, name, addr, len(self.players) + 1))
+
+
 
         for snake in self.players:
-            self.server.sendto(bytes('runing', encoding = "utf-8"),snake.addr)
+            snake.conn.send(bytes('runing', encoding = "utf-8"))
 
 
 
@@ -52,8 +57,8 @@ class Game:
 
 
     def gameloop(self):
-        for i in range(len(self.players)):
-            self.recv_input()
+
+        self.recv_input()
 
         for snake in self.players:
             if snake.living:
@@ -122,37 +127,37 @@ class Game:
 
     def send_data(self,data):
         for snake in self.players:
-            self.server.sendto(bytes(json.dumps(data), encoding = "utf-8"),snake.addr)
+            snake.conn.send(bytes(json.dumps(data), encoding = "utf-8"))
 
 
     def recv_input(self):
-        direction,addr = self.server.recvfrom(1024)
-        direction = direction.decode("utf-8")
         for snake in self.players:
-            if snake.addr == addr:
-                if direction == 'left' and snake.direction != 'right':
-                    snake.next_direction = 'left'
-                elif direction == 'right' and snake.direction != 'left':
-                    snake.next_direction = 'right'
-                elif direction == 'up' and snake.direction != 'down':
-                    snake.next_direction = 'up'
-                elif direction == 'down' and snake.direction != 'up':
-                    snake.next_direction = 'down'
-                elif direction == 'esc':
-                    snake.living = False
+            direction = snake.conn.recv(1024)
+            direction = direction.decode("utf-8")
+            if direction == 'left' and snake.direction != 'right':
+                snake.next_direction = 'left'
+            elif direction == 'right' and snake.direction != 'left':
+                snake.next_direction = 'right'
+            elif direction == 'up' and snake.direction != 'down':
+                snake.next_direction = 'up'
+            elif direction == 'down' and snake.direction != 'up':
+                snake.next_direction = 'down'
+            elif direction == 'esc':
+                snake.living = False
 
 
     def kill_snake(self,snake):
-        self.server.sendto(bytes('stop',encoding = 'utf-8'),snake.addr)
+        snake.conn.send(bytes('stop',encoding = 'utf-8'))
 
 
 
 class Snake:
 
-    def __init__(self,name,addr,player_count):
+    def __init__(self,conn,name,addr,player_count):
 
         self.name = name
         self.addr = addr
+        self.conn = conn
 
         self.living = True
         self.score = 0

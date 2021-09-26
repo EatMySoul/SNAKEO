@@ -19,11 +19,13 @@ class Game():
     def __init__(self):
 
 
-        self.client = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        self.client = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
 
         name = input('Your name :')
 
-        self.client.sendto(bytes(name, encoding='utf-8'),SERVER_IP_PORT)
+        self.client.connect(SERVER_IP_PORT)
+
+        self.client.send(bytes(name, encoding='utf-8'))
 
 
         self.game_status = 'stop'
@@ -49,9 +51,9 @@ class Game():
         self.food_pos = {}
 
         self.gameloop()
+        print('YOU ARE DEAD ;(')
 
         self.root.mainloop()
-        print('YOU ARE DEAD ;(')
 
 
     def gameloop(self):
@@ -66,7 +68,7 @@ class Game():
         
 
     def send_data(self):
-        self.client.sendto(bytes(self.direction,encoding = 'utf-8'),SERVER_IP_PORT)
+        self.client.send(bytes(self.direction,encoding = 'utf-8'))
         self.direction = 'None'
 
         
@@ -74,7 +76,7 @@ class Game():
 
     def recv_data(self):
 
-        data,serv_addr = self.client.recvfrom(1024)
+        data = self.client.recv(1024)
      #   print(data)
 
         data = data.decode("utf-8")
@@ -110,10 +112,9 @@ class Game():
                 color_num = 2 if color_num == 1 or 0 else 1
             color_num = 0
             snake_num += 1
-
+            SNAKE_COLOR[snake_num][2], SNAKE_COLOR[snake_num][1] = SNAKE_COLOR[snake_num][1], SNAKE_COLOR[snake_num][2]
         for food in self.food_pos:
             self.canvas.create_rectangle(food['Y'], food['X'], food['Y'] + SEGMENT_SIZE, food['X'] + SEGMENT_SIZE, fill='#d00000')
-   #     SNAKE_COLOR[2], SNAKE_COLOR[1] = SNAKE_COLOR[1], SNAKE_COLOR[2]
         self.canvas.update()
 
     def on_press(self, key):
