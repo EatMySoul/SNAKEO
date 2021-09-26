@@ -1,8 +1,6 @@
-from threading import Thread
 import json
 from pynput import keyboard
 from tkinter import *
-import time
 import socket
 
 
@@ -28,10 +26,8 @@ class Game():
         self.client.send(bytes(name, encoding='utf-8'))
 
 
-        self.game_status = 'stop'
-        while self.game_status == 'stop':
-            self.game_status = self.client.recv(1024)
-            self.game_status = self.game_status.decode('utf-8')
+        self.game_status = self.client.recv(1024)
+        self.game_status = self.game_status.decode('utf-8')
 
 
 
@@ -51,13 +47,11 @@ class Game():
         self.food_pos = {}
 
         self.gameloop()
-        print('YOU ARE DEAD ;(')
 
         self.root.mainloop()
 
 
     def gameloop(self):
-      #  print(self.players)
         if self.game_status == 'runing':
             self.send_data()
             self.recv_data()
@@ -65,6 +59,8 @@ class Game():
     
             self.show_interface()
             self.root.after(GAME_SPEED,self.gameloop)
+        else:
+            print('YOU ARE DEAD ;(')
         
 
     def send_data(self):

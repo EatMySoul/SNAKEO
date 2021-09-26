@@ -1,27 +1,24 @@
-from pynput import keyboard
 from random import randint
 import json
-from tkinter import *
 import socket
-import time
 
 MAP_SIZE = 800
 SEGMENT_SIZE = 20
 GAME_SPEED = 100
 
-MAX_PLAYERS = 2
+MAX_PLAYERS = 1
 
 SNAKE_COLOR = ['#99d98c', '#264653', '#2a9d8f']
 
 
-# WAS DESIGION OF USE A DICT IS RIGHT?
+# WAS DESIGION OF USE A DICT IS RIGHT? IDK
 
 class Game:
 
     def __init__(self):
 
                                         #network
-        self.server = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM) #family=socket.AF_INET, type=socket.SOCK_STREAM
+        self.server = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
         self.server.bind(('',9996))     #Using 9996 port
         self.server.listen(MAX_PLAYERS)
 
@@ -36,21 +33,19 @@ class Game:
             self.players.append(Snake(conn, name, addr, len(self.players) + 1))
 
 
-
         for snake in self.players:
             snake.conn.send(bytes('runing', encoding = "utf-8"))
 
 
 
         self.food_pos = []
-
         for i in range(len(self.players)):
             self.add_food()
+
 
         data = self.get_network_data()
         self.send_data(data)
 
-        print('am send some important data')
         self.gameloop()
         print('game over')
 
@@ -105,7 +100,6 @@ class Game:
 
 
 
-    ##TODO COLLISION BETWEEN PLAYERS
     def check_snakes_collision(self):
         for snake in self.players:
             for food in self.food_pos:
@@ -207,7 +201,6 @@ class Snake:
 
     def add_segment(self):
         self.score += 10
-      #  print(f'Score is {self.score}')
 
         new_segment  = {'X': self.body[-1]['X'], 'Y': self.body[-1]['Y']}
         self.body.append(new_segment)
