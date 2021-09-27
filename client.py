@@ -52,8 +52,6 @@ class Game():
         self.food_pos = init_data[0]
         self.players = init_data[1:]
 
-        print(self.players)                                     #DEBUG TO DELETE
-
 
 
         listener = keyboard.Listener(on_press=self.on_press)
@@ -121,10 +119,6 @@ class Game():
                     color_num = 2 if color_num == 1 or 0 else 1
                 SNAKE_COLOR[snake['color']][2], SNAKE_COLOR[snake['color']][1] = SNAKE_COLOR[snake['color']][1], SNAKE_COLOR[snake['color']][2]
     
-                       # self.canvas.create_text(snake[i][1] + SEGMENT_SIZE / 2, snake[i][0] + SEGMENT_SIZE / 2,font=("Purisa", 18),fill = '#f8edeb',text = f'{self.name[i]}')
-
-
-
 
             ##### SCORE TAB ##########             
         self.canvas.create_text(MAP_SIZE + 100, 50, text = 'SCORE:',font=("Purisa", 18), fill='white')
@@ -132,12 +126,7 @@ class Game():
         for i in range(len(self.players)):
             output = self.players[i]['name'] +': '+ str(self.players[i]['score'])
             self.canvas.create_rectangle(MAP_SIZE,100 - SEGMENT_SIZE/2 + i*30, MAP_SIZE + SEGMENT_SIZE, 100 - SEGMENT_SIZE/2 + i* 30 + SEGMENT_SIZE,fill = snake_color[self.players[i]['color']][0])
-            self.canvas.create_text(MAP_SIZE + 50, 100 + i*30, text = output,font=("Purisa", 12), fill='white')
-
-
-
-            
- 
+            self.canvas.create_text(MAP_SIZE + 100, 100 + i*30, text = output,font=("Purisa", 12), fill='white')
 
 
         for food in self.food_pos:
