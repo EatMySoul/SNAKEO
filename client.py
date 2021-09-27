@@ -1,4 +1,4 @@
-import json
+import pickle
 from pynput import keyboard
 from tkinter import *
 import socket
@@ -7,7 +7,13 @@ import socket
 MAP_SIZE = 800
 SEGMENT_SIZE = 20
 GAME_SPEED  = 100
-SNAKE_COLOR = [ ['#99d98c', '#264653', '#2a9d8f'], ['#4cc9f0', '#3f37c9', '#4361ee'] , ['#ffccd5', '#ff4d6d', '#ffb3c1'] , ['#f3d5b5', '#a47148', '#d4a276']]
+SNAKE_COLOR = {'green':['#99d98c', '#264653', '#2a9d8f'],
+               'blue': ['#4cc9f0', '#3f37c9', '#4361ee'],
+               'pink': ['#ffccd5', '#ff8fa3', '#ffb3c1'],
+               'dust': ['#f3d5b5', '#a47148', '#d4a276'],
+               'underground': ['#a6808c', '#565264', '#706677'],
+               'candy': ['#eff7f6','#f7d6e0', '#b2f7ef'],
+               'dead': ['#dee2e6', '#adb5bd', '#ced4da']}
 
 SERVER_IP_PORT = ('127.0.0.1',9996)
 
@@ -20,31 +26,39 @@ class Game():
         self.client = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
 
         name = input('Your name :')
+        self.root = Tk()
+        self.root.geometry(f'{MAP_SIZE + 300}x{MAP_SIZE}')
+
+        self.canvas = Canvas(self.root, height=MAP_SIZE, width=MAP_SIZE + 300,  bg='black')
+        self.canvas.pack()
+        self.canvas.update()
 
         self.client.connect(SERVER_IP_PORT)
 
         self.client.send(bytes(name, encoding='utf-8'))
 
+        self.game_status = 'stop'
+        self.direction ='None'
+        self.players = []
+        self.food_pos = []
 
-        self.game_status = self.client.recv(1024)
-        self.game_status = self.game_status.decode('utf-8')
+        while self.game_status == 'stop':
+            data = self.client.recv(1024)
+            if data.decode('utf-8') == 'runing':
+                self.game_status = 'runing'
+            else:
+                print(data.decode('utf-8'),'connected')
+        init_data = pickle.loads(self.client.recv(1024))
+        self.food_pos = init_data[0]
+        self.players = init_data[1:]
+
+        print(self.players)                                     #DEBUG TO DELETE
 
 
-
-
-        self.root = Tk()
-        self.root.geometry(f'{MAP_SIZE}x{MAP_SIZE}')
-
-        self.canvas = Canvas(self.root, height=MAP_SIZE, width=MAP_SIZE,  bg='black')
-        self.canvas.pack()
-        self.canvas.update()
 
         listener = keyboard.Listener(on_press=self.on_press)
         listener.start()
 
-        self.direction ='None'
-        self.players = []
-        self.food_pos = {}
 
         self.gameloop()
 
@@ -55,8 +69,7 @@ class Game():
         if self.game_status == 'runing':
             self.send_data()
             self.recv_data()
-    
-    
+
             self.show_interface()
             self.root.after(GAME_SPEED,self.gameloop)
         else:
@@ -73,45 +86,64 @@ class Game():
     def recv_data(self):
 
         data = self.client.recv(1024)
-     #   print(data)
-
-        data = data.decode("utf-8")
-        if data == 'stop':
-
-            self.game_status = 'stop'
-        else:
-
-            data = json.loads(data)
+        data = pickle.loads(data)
+        if data != 'stop':
             self.update_data(data)
-
+        else:
+            self.game_status = 'stop'
 
 
     def update_data(self,data):
-        self.food_pos = data['food_pos']
-        coord_data = []
-        for i in range(len(data) - 1):
-            coord_data.append(data[f'player{i}'])
-        self.players = coord_data
+        self.food_pos = data[0]
+        for i in range(0,len(self.players)):
+            self.players[i]['body']  = data[i + 1]['body']
+            self.players[i]['score'] = data[i + 1]['score']
+            self.players[i]['living'] = data[i + 1]['living']
 
 
     def show_interface(self):
         self.canvas.delete('all')
-
-        color_num = 0
-        snake_num = 0
         snake_color = SNAKE_COLOR
 
-        ##TODO CHANGE SIZING
+
         for snake in self.players:
-            for segment in snake:
-                self.canvas.create_rectangle(segment['Y'], segment['X'], segment['Y'] + SEGMENT_SIZE, segment['X']  + SEGMENT_SIZE, fill=snake_color[snake_num][color_num])
-                color_num = 2 if color_num == 1 or 0 else 1
             color_num = 0
-            snake_num += 1
-            SNAKE_COLOR[snake_num][2], SNAKE_COLOR[snake_num][1] = SNAKE_COLOR[snake_num][1], SNAKE_COLOR[snake_num][2]
+            if not snake['living']:
+                for segment in snake['body']:
+                    self.canvas.create_rectangle(segment[1], segment[0], segment[1] + SEGMENT_SIZE, segment[0]  + SEGMENT_SIZE, fill=snake_color['dead'][color_num])
+                    color_num = 2 if color_num == 1 or 0 else 1
+
+        for snake in self.players:
+            color_num = 0
+            if snake['living']:
+                for segment in snake['body']:
+                    self.canvas.create_rectangle(segment[1], segment[0], segment[1] + SEGMENT_SIZE, segment[0]  + SEGMENT_SIZE, fill=snake_color[snake['color']][color_num])
+                    color_num = 2 if color_num == 1 or 0 else 1
+                SNAKE_COLOR[snake['color']][2], SNAKE_COLOR[snake['color']][1] = SNAKE_COLOR[snake['color']][1], SNAKE_COLOR[snake['color']][2]
+    
+                       # self.canvas.create_text(snake[i][1] + SEGMENT_SIZE / 2, snake[i][0] + SEGMENT_SIZE / 2,font=("Purisa", 18),fill = '#f8edeb',text = f'{self.name[i]}')
+
+
+
+
+            ##### SCORE TAB ##########             
+        self.canvas.create_text(MAP_SIZE + 100, 50, text = 'SCORE:',font=("Purisa", 18), fill='white')
+            #WOW LOOKS UNREADBLE
+        for i in range(len(self.players)):
+            output = self.players[i]['name'] +': '+ str(self.players[i]['score'])
+            self.canvas.create_rectangle(MAP_SIZE,100 - SEGMENT_SIZE/2 + i*30, MAP_SIZE + SEGMENT_SIZE, 100 - SEGMENT_SIZE/2 + i* 30 + SEGMENT_SIZE,fill = snake_color[self.players[i]['color']][0])
+            self.canvas.create_text(MAP_SIZE + 50, 100 + i*30, text = output,font=("Purisa", 12), fill='white')
+
+
+
+            
+ 
+
+
         for food in self.food_pos:
-            self.canvas.create_rectangle(food['Y'], food['X'], food['Y'] + SEGMENT_SIZE, food['X'] + SEGMENT_SIZE, fill='#d00000')
+            self.canvas.create_rectangle(food[1], food[0], food[1] + SEGMENT_SIZE, food[0] + SEGMENT_SIZE, fill='#d00000')
         self.canvas.update()
+
 
     def on_press(self, key):
         if key == keyboard.Key.left:

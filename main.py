@@ -1,17 +1,14 @@
 from random import randint
-import json
+import pickle
 import socket
 
 MAP_SIZE = 800
 SEGMENT_SIZE = 20
 GAME_SPEED = 100
 
-MAX_PLAYERS = 1
-
-SNAKE_COLOR = ['#99d98c', '#264653', '#2a9d8f']
+MAX_PLAYERS = 2
 
 
-# WAS DESIGION OF USE A DICT IS RIGHT? IDK
 
 class Game:
 
@@ -31,22 +28,26 @@ class Game:
             name = conn.recv(1024).decode('utf-8')
             print('player',name,'connected')
             self.players.append(Snake(conn, name, addr, len(self.players) + 1))
-
-
-        for snake in self.players:
-            snake.conn.send(bytes('runing', encoding = "utf-8"))
-
+            
+            for snake in self.players:
+                if snake.name != name:
+                    snake.conn.send(bytes(name,encoding = 'utf-8'))
 
 
         self.food_pos = []
         for i in range(len(self.players)):
             self.add_food()
 
+        init_data = [self.food_pos]
+        for snake in self.players:
+            snake.conn.send(bytes('runing', encoding = "utf-8"))
+            init_data.append({'name': snake.name,'body': snake.body, 'color': snake.color,'score': snake.score,'living': True})
+        self.send_data(init_data)
 
-        data = self.get_network_data()
-        self.send_data(data)
 
-        self.gameloop()
+        while len(self.players) > 0:
+            self.gameloop()
+
         print('game over')
 
 
@@ -60,18 +61,9 @@ class Game:
                 snake.direction = snake.next_direction
                 snake.move()
                 self.check_snakes_collision()
-            else:
-                if len(self.players) > 1:
-                    self.players.remove(snake)
-                    self.kill_snake(snake)
-                else:
-                    return 0
-
+                
         data = self.get_network_data()
         self.send_data(data)
-
-
-        self.gameloop()
 
 
     def add_food(self):
@@ -85,7 +77,7 @@ class Game:
             x = randint(0, MAP_SIZE/SEGMENT_SIZE) * SEGMENT_SIZE
             y = randint(0, MAP_SIZE/SEGMENT_SIZE) * SEGMENT_SIZE
 
-        self.food_pos.append({'X': x, 'Y': y})
+        self.food_pos.append([ x, y])
 
 
 
@@ -93,9 +85,9 @@ class Game:
     def get_snake_coord(self,except_snake = None):
         cordinates = []
         for snake in self.players:
-            if snake != except_snake:
+            if snake != except_snake and snake.living:
                 for segment in snake.body:
-                    cordinates.append(list(segment.values()))
+                    cordinates.append(segment)
         return cordinates
 
 
@@ -103,45 +95,47 @@ class Game:
     def check_snakes_collision(self):
         for snake in self.players:
             for food in self.food_pos:
-                if list(snake.body[0].values()) == list(food.values()):
+                if snake.body[0] == food:
                     snake.add_segment()
                     self.food_pos.remove(food)
                     self.add_food()
-            if list(snake.body[0].values()) in self.get_snake_coord(except_snake = snake):
+            if snake.body[0] in self.get_snake_coord(except_snake = snake):
                 snake.death()
 
      ############################NETWORK################################           
 
     def get_network_data(self):
-        data = {'food_pos': self.food_pos}
+        data = [self.food_pos]
         for i in range(len(self.players)):
-            data.update({f'player{i}':self.players[i].body})
+            data.append({'body': self.players[i].body,'score': self.players[i].score , 'living': self.players[i].living})
         return data
 
 
     def send_data(self,data):
+        data = pickle.dumps(data)
         for snake in self.players:
-            snake.conn.send(bytes(json.dumps(data), encoding = "utf-8"))
+            snake.conn.send(data)
+
 
 
     def recv_input(self):
         for snake in self.players:
-            direction = snake.conn.recv(1024)
-            direction = direction.decode("utf-8")
-            if direction == 'left' and snake.direction != 'right':
-                snake.next_direction = 'left'
-            elif direction == 'right' and snake.direction != 'left':
-                snake.next_direction = 'right'
-            elif direction == 'up' and snake.direction != 'down':
-                snake.next_direction = 'up'
-            elif direction == 'down' and snake.direction != 'up':
-                snake.next_direction = 'down'
-            elif direction == 'esc':
-                snake.living = False
+            if snake.living:
+                direction = snake.conn.recv(1024)
+                direction = direction.decode("utf-8")
+                if direction == 'left' and snake.direction != 'right':
+                    snake.next_direction = 'left'
+                elif direction == 'right' and snake.direction != 'left':
+                    snake.next_direction = 'right'
+                elif direction == 'up' and snake.direction != 'down':
+                    snake.next_direction = 'up'
+                elif direction == 'down' and snake.direction != 'up':
+                    snake.next_direction = 'down'
 
 
     def kill_snake(self,snake):
-        snake.conn.send(bytes('stop',encoding = 'utf-8'))
+        print('killing',snake.name)
+        snake.conn.send(pickle.dumps('stop'))
 
 
 
@@ -156,10 +150,11 @@ class Snake:
         self.living = True
         self.score = 0
 ## TODO NEED TO SET UNIQ COORDS FOR EACH SNAKE
-        self.body = [{'X': 3*player_count * SEGMENT_SIZE, 'Y': 3 * SEGMENT_SIZE},
-                     {"X": 3*player_count * SEGMENT_SIZE, "Y": 2 * SEGMENT_SIZE},
-                     {"X": 3*player_count * SEGMENT_SIZE, "Y": 1 * SEGMENT_SIZE}, ]
+        self.body = [[ 3*player_count * SEGMENT_SIZE, 3 * SEGMENT_SIZE],
+                     [ 3*player_count * SEGMENT_SIZE, 2 * SEGMENT_SIZE],
+                     [ 3*player_count * SEGMENT_SIZE, 1 * SEGMENT_SIZE]]
 
+        self.color = ('green','blue','pink','dust','underground','candy')[player_count - 1]
         self.direction = 'up'
         self.next_direction = 'up'
 
@@ -168,30 +163,30 @@ class Snake:
         # перемещение координат тела змейки
         if self.living:
             for segment in range(len(self.body) - 1, 0, -1):
-                self.body[segment]['X'] = self.body[segment - 1]['X']
-                self.body[segment]['Y'] = self.body[segment - 1]['Y']
+                self.body[segment][0] = self.body[segment - 1][0]
+                self.body[segment][1] = self.body[segment - 1][1]
     
             if self.direction == 'right':
-                if self.body[0]['Y'] == MAP_SIZE - SEGMENT_SIZE:
-                    self.body[0]['Y'] = 0
+                if self.body[0][1] == MAP_SIZE - SEGMENT_SIZE:
+                    self.body[0][1] = 0
                 else:
-                    self.body[0]['Y'] += SEGMENT_SIZE
+                    self.body[0][1] += SEGMENT_SIZE
     
             elif self.direction == 'left':
-                if self.body[0]['Y'] == 0:
-                    self.body[0]['Y'] = MAP_SIZE - SEGMENT_SIZE
+                if self.body[0][1] == 0:
+                    self.body[0][1] = MAP_SIZE - SEGMENT_SIZE
                 else:
-                    self.body[0]['Y'] -= SEGMENT_SIZE
+                    self.body[0][1] -= SEGMENT_SIZE
             elif self.direction == 'up':
-                if self.body[0]['X'] == 0:
-                    self.body[0]['X'] = MAP_SIZE - SEGMENT_SIZE
+                if self.body[0][0] == 0:
+                    self.body[0][0] = MAP_SIZE - SEGMENT_SIZE
                 else:
-                    self.body[0]['X'] -= SEGMENT_SIZE
+                    self.body[0][0] -= SEGMENT_SIZE
             elif self.direction == 'down':
-                if self.body[0]['X'] == MAP_SIZE - SEGMENT_SIZE:
-                    self.body[0]['X'] = 0
+                if self.body[0][0] == MAP_SIZE - SEGMENT_SIZE:
+                    self.body[0][0] = 0
                 else:
-                    self.body[0]['X'] += SEGMENT_SIZE
+                    self.body[0][0] += SEGMENT_SIZE
              #### SNAKE CHECK HIS OWN COLLISION? ITS BAD
             for i in range(1, len(self.body)):
                 if self.body[0] == self.body[i]:
@@ -202,7 +197,7 @@ class Snake:
     def add_segment(self):
         self.score += 10
 
-        new_segment  = {'X': self.body[-1]['X'], 'Y': self.body[-1]['Y']}
+        new_segment  = [self.body[-1][0],  self.body[-1][1]]
         self.body.append(new_segment)
 
 
