@@ -25,13 +25,8 @@ class Game():
 
         self.client = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
 
-        name = input('Your name :')
-        self.root = Tk()
-        self.root.geometry(f'{MAP_SIZE + 300}x{MAP_SIZE}')
+        name = input('Your name: ')
 
-        self.canvas = Canvas(self.root, height=MAP_SIZE, width=MAP_SIZE + 300,  bg='black')
-        self.canvas.pack()
-        self.canvas.update()
 
         self.client.connect(SERVER_IP_PORT)
 
@@ -43,7 +38,7 @@ class Game():
         self.food_pos = []
 
         while self.game_status == 'stop':
-            data = self.client.recv(1024)
+            data = self.client.recv(6)
             if data.decode('utf-8') == 'runing':
                 self.game_status = 'runing'
             else:
@@ -52,6 +47,12 @@ class Game():
         self.food_pos = init_data[0]
         self.players = init_data[1:]
 
+        self.root = Tk()
+        self.root.geometry(f'{MAP_SIZE + 300}x{MAP_SIZE}')
+
+        self.canvas = Canvas(self.root, height=MAP_SIZE, width=MAP_SIZE + 300,  bg='black')
+        self.canvas.pack()
+        self.canvas.update()
 
 
         listener = keyboard.Listener(on_press=self.on_press)
@@ -70,9 +71,8 @@ class Game():
 
             self.show_interface()
             self.root.after(GAME_SPEED,self.gameloop)
-        else:
-            print('YOU ARE DEAD ;(')
-        
+        else:                                                                   #TODO game stop
+            print('GG')
 
     def send_data(self):
         self.client.send(bytes(self.direction,encoding = 'utf-8'))
@@ -88,6 +88,7 @@ class Game():
         if data != 'stop':
             self.update_data(data)
         else:
+            print('get stop signal')
             self.game_status = 'stop'
 
 
