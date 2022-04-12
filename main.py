@@ -130,7 +130,7 @@ class Game:
             if snake.conn:
                 try:
                     snake.conn.send(data) 
-                except ConnectionResetError:
+                except (ConnectionResetError,BrokenPipeError):
                     print(f'[!] {snake.name}  disconnected')
                     snake.conn = None
                     if snake.living:

@@ -118,7 +118,7 @@ class Game():
                 for segment in snake['body']:
                     self.canvas.create_rectangle(segment[1], segment[0], segment[1] + SEGMENT_SIZE, segment[0]  + SEGMENT_SIZE, fill=snake_color[snake['color']][color_num])
                     color_num = 2 if color_num == 1 or 0 else 1
-                SNAKE_COLOR[snake['color']][2], SNAKE_COLOR[snake['color']][1] = SNAKE_COLOR[snake['color']][1], SNAKE_COLOR[snake['color']][2]
+                #SNAKE_COLOR[snake['color']][2], SNAKE_COLOR[snake['color']][1] = SNAKE_COLOR[snake['color']][1], SNAKE_COLOR[snake['color']][2]
     
 
             ##### SCORE TAB ##########             
