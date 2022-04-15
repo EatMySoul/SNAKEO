@@ -1,10 +1,11 @@
 import pickle
+from playsound import playsound
 from pynput import keyboard
 from tkinter import *
 import socket
 
 
-MAP_SIZE = 800
+MAP_SIZE = 700
 SEGMENT_SIZE = 20
 GAME_SPEED  = 100
 SNAKE_COLOR = {'green':['#99d98c', '#264653', '#2a9d8f'],
@@ -13,9 +14,9 @@ SNAKE_COLOR = {'green':['#99d98c', '#264653', '#2a9d8f'],
                'dust': ['#f3d5b5', '#a47148', '#d4a276'],
                'underground': ['#a6808c', '#565264', '#706677'],
                'candy': ['#eff7f6','#f7d6e0', '#b2f7ef'],
-               'dead': ['#dee2e6', '#adb5bd', '#ced4da']}
+               'dead': ['#495057', '#212529', '#343a40']}
 
-SERVER_IP_PORT = ('127.0.0.1',9996)
+SERVER_IP_PORT = ('192.168.43.252',9996)
 
 
 class Game():
@@ -32,17 +33,11 @@ class Game():
 
         self.client.send(bytes(name, encoding='utf-8'))
 
-        self.game_status = 'stop'
+        self.game_status = 'runing'
         self.direction ='None'
         self.players = []
         self.food_pos = []
 
-        while self.game_status == 'stop':
-            data = self.client.recv(6)
-            if data.decode('utf-8') == 'runing':
-                self.game_status = 'runing'
-            else:
-                print(data.decode('utf-8'),'connected')
         init_data = pickle.loads(self.client.recv(1024))
         self.food_pos = init_data[0]
         self.players = init_data[1:]

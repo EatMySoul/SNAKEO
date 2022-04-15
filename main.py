@@ -2,17 +2,17 @@ from random import randint
 import pickle
 import socket
 
-MAP_SIZE = 800
+MAP_SIZE = 700
 SEGMENT_SIZE = 20
 GAME_SPEED = 100
 MAX_PLAYERS = 2
 
 PLAYERS_START_POS = ([[60,60],[60,40],[60,20]],
-                    [[740,780],[740,760],[740,740]],
-                    [[100,740],[80,740],[60,740]],
-                    [[740,60],[760,40],[780,20]],
-                    [[60,400],[40,400],[20,400]],
-                    [[740,400],[760,400],[780,400]])
+                    [[640,680],[640,660],[640,640]],
+                    [[100,640],[80,640],[60,640]],
+                    [[640,60],[660,40],[680,20]],
+                    [[60,300],[40,300],[20,300]],
+                    [[640,300],[660,300],[680,300]])
 PLAYER_START_DIR = ('down','up','right','left','right','left')
 
 
@@ -35,10 +35,6 @@ class Game:
             print('[!] player',name,'connected')
             self.players.append(Snake(conn, name, addr, len(self.players)))
             
-            for snake in self.players:
-                if snake.name != name:
-                    snake.conn.send(bytes(name,encoding = 'utf-8'))
-
         self.live_players = len(self.players)
 
 
@@ -48,7 +44,6 @@ class Game:
 
         init_data = [self.food_pos]
         for snake in self.players:
-            snake.conn.send(bytes('runing', encoding = "utf-8"))
             init_data.append({'name': snake.name,'body': snake.body, 'color': snake.color,'score': snake.score,'living': True})
         self.send_data(init_data)
 
@@ -218,6 +213,7 @@ class Snake:
 
 
     def add_segment(self):
+        print(f"* {self.name} eats an apple")
         self.score += 10
 
         new_segment  = [self.body[-1][0],  self.body[-1][1]]
