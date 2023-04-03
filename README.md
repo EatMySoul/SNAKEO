@@ -1,5 +1,8 @@
 # Online Snake game
 
+<p align="center">
+    <img src="snake.png" width="400" alt="Screen">
+</p>
 
 ## To start server:
 `python3 startserver.py`
