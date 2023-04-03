@@ -1,7 +1,7 @@
 # Online Snake game
 
 <p align="center">
-    <img src="snake.png" width="400" alt="Screen">
+    <img src="snake.png" width="800" alt="Screen">
 </p>
 
 ## To start server:
