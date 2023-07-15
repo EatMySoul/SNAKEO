@@ -38,7 +38,7 @@ class Game:
         self.live_players = len(self.players)
 
 
-        for i in range(len(self.players)):
+        for _ in range(len(self.players)):
             self.add_food()
 
         self.send_data(self.get_init_network_data())
@@ -51,7 +51,7 @@ class Game:
 
 
 
-    def gameloop(self):
+    def gameloop(self) -> None:
         """starting gameloop of the game"""
 
         self.recv_input()
@@ -66,24 +66,24 @@ class Game:
         self.send_data(data)
 
 
-    def add_food(self):
+    def add_food(self) -> None:
         """add food to the game field"""
 
-        x = randint(0, MAP_SIZE/SEGMENT_SIZE - 1) * SEGMENT_SIZE
-        y = randint(0, MAP_SIZE/SEGMENT_SIZE - 1) * SEGMENT_SIZE
+        x = randint(0, int(MAP_SIZE/SEGMENT_SIZE) - 1) * SEGMENT_SIZE
+        y = randint(0, int(MAP_SIZE/SEGMENT_SIZE) - 1) * SEGMENT_SIZE
 
         snakes_coords = self.get_snake_coord()
 
         while [x, y] in snakes_coords:
-            x = randint(0, MAP_SIZE/SEGMENT_SIZE) * SEGMENT_SIZE
-            y = randint(0, MAP_SIZE/SEGMENT_SIZE) * SEGMENT_SIZE
+            x = randint(0, int(MAP_SIZE/SEGMENT_SIZE)) * SEGMENT_SIZE
+            y = randint(0, int(MAP_SIZE/SEGMENT_SIZE)) * SEGMENT_SIZE
 
         self.food_pos.append([x, y])
 
 
 
 
-    def get_snake_coord(self,except_snake = None):
+    def get_snake_coord(self,except_snake = None) -> list:
         """getting list of coordinates of each snake segment"""
         cordinates = []
         for snake in self.players:
@@ -96,7 +96,7 @@ class Game:
 
 
 
-    def check_snakes_collision(self):
+    def check_snakes_collision(self) -> None:
         for snake in self.players:
             if snake.living:
                 for food in self.food_pos:
@@ -109,7 +109,7 @@ class Game:
                     self.live_players -= 1
 
      ############################NETWORK################################           
-    def get_init_network_data(self):
+    def get_init_network_data(self) -> list:
         """return init network data"""
 
 
@@ -124,7 +124,7 @@ class Game:
 
 
 
-    def get_network_data(self):
+    def get_network_data(self) -> list:
         """get player inputs from the connection"""
         data = [self.food_pos]
         for i in range(len(self.players)):
@@ -134,7 +134,7 @@ class Game:
         return data
 
 
-    def send_data(self,data):
+    def send_data(self,data) -> None:
         """send network data to playres"""
         data = pickle.dumps(data)
         for snake in self.players:
@@ -152,7 +152,7 @@ class Game:
 
 
 
-    def recv_input(self):  
+    def recv_input(self) -> None:  
         """recive players input"""
         for snake in self.players:
             if snake.living:
@@ -194,7 +194,7 @@ class Snake:
         self.next_direction = PLAYER_START_DIR[player_count]
 
 
-    def move(self):
+    def move(self) -> None:
         """moveing snake in game field"""
         if self.living:
             for segment in range(len(self.body) - 1, 0, -1):
@@ -225,7 +225,7 @@ class Snake:
     
 
 
-    def add_segment(self):
+    def add_segment(self) -> None:
         """add segment to the snake"""
         print(f"* {self.name} eats an apple")
         self.score += 10

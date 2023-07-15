@@ -1,6 +1,6 @@
 import pickle
 from pynput import keyboard
-from tkinter import *
+from tkinter import Tk, Canvas
 import socket
 import ipaddress
 
@@ -59,7 +59,7 @@ class Game():
         self.root.mainloop()
 
 
-    def gameloop(self):
+    def gameloop(self) -> None:
         """start mainloop of the game"""
         if self.game_status == 'runing':
             self.send_data()
@@ -70,7 +70,7 @@ class Game():
         else:                                                       
             print('GG')
 
-    def send_data(self):
+    def send_data(self) -> None:
         """send player direction to server"""
         self.client.send(bytes(self.direction,encoding = 'utf-8'))
         self.direction = 'None'
@@ -78,7 +78,7 @@ class Game():
         
 
 
-    def recv_data(self):
+    def recv_data(self) -> None:
         """recive network data from server"""
 
         data = self.client.recv(1024)
@@ -90,7 +90,7 @@ class Game():
             self.game_status = 'stop'
 
 
-    def update_data(self,data):
+    def update_data(self,data) -> None:
         """updating network data"""
         self.food_pos = data[0]
         for i in range(0,len(self.players)):
@@ -99,7 +99,7 @@ class Game():
             self.players[i]['living'] = data[i + 1]['living']
 
 
-    def show_interface(self):
+    def show_interface(self) -> None:
         """render game interface, including  game field"""
         self.canvas.delete('all')
         snake_color = SNAKE_COLOR
@@ -154,7 +154,7 @@ class Game():
         self.canvas.update()
 
 
-    def on_press(self, key):
+    def on_press(self, key) -> None:
         """Handling players input"""
         if key == keyboard.Key.left:
             self.direction = 'left'
